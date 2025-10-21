@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/a4e0e0e3-2f9d-4c41-9a5e-f139d10279f0/console.sql" value="a4e0e0e3-2f9d-4c41-9a5e-f139d10279f0" />
+    <file url="file://$PROJECT_DIR$/schema/01_create_schema.sql" value="a4e0e0e3-2f9d-4c41-9a5e-f139d10279f0" />
+    <file url="file://$PROJECT_DIR$/schema/02_insert_data.sql" value="a4e0e0e3-2f9d-4c41-9a5e-f139d10279f0" />
+    <file url="file://$PROJECT_DIR$/schema/03_check_data.sql" value="a4e0e0e3-2f9d-4c41-9a5e-f139d10279f0" />
+    <file url="file://$PROJECT_DIR$/utils/reset_db.sql" value="a4e0e0e3-2f9d-4c41-9a5e-f139d10279f0" />
+  </component>
+</project>
