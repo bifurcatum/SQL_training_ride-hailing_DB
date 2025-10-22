@@ -4,43 +4,7 @@ USE ride_hailing;
 -- INSERT DATA INTO DIMENSIONS
 -- =====================================================
 
--- 1. Drivers
-INSERT INTO dim_driver (name, registration_date, city_id, rating, vehicle_type)
-SELECT
-    CONCAT('Driver_', n),
-    DATE_SUB(CURDATE(), INTERVAL FLOOR(RAND()*1500) DAY),
-    FLOOR(1 + RAND()*5),
-    ROUND(3.5 + RAND()*1.5, 2),
-    ELT(FLOOR(1 + RAND()*3), 'Sedan', 'SUV', 'Economy')
-FROM (
-    SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-    UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-    UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14 UNION SELECT 15
-    UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19 UNION SELECT 20
-) t;
-
--- 2. Riders
-INSERT INTO dim_rider (name, registration_date, loyalty_status)
-SELECT
-    CONCAT('Rider_', n),
-    DATE_SUB(CURDATE(), INTERVAL FLOOR(RAND()*2000) DAY),
-    ELT(FLOOR(1 + RAND()*3), 'Bronze', 'Silver', 'Gold')
-FROM (
-    SELECT n FROM (
-        SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-        UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14 UNION SELECT 15
-        UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19 UNION SELECT 20
-        UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION SELECT 24 UNION SELECT 25
-        UNION SELECT 26 UNION SELECT 27 UNION SELECT 28 UNION SELECT 29 UNION SELECT 30
-        UNION SELECT 31 UNION SELECT 32 UNION SELECT 33 UNION SELECT 34 UNION SELECT 35
-        UNION SELECT 36 UNION SELECT 37 UNION SELECT 38 UNION SELECT 39 UNION SELECT 40
-        UNION SELECT 41 UNION SELECT 42 UNION SELECT 43 UNION SELECT 44 UNION SELECT 45
-        UNION SELECT 46 UNION SELECT 47 UNION SELECT 48 UNION SELECT 49 UNION SELECT 50
-    ) s
-) r;
-
--- 3. Locations (cities)
+-- 1. Locations (must be inserted first as drivers reference it)
 INSERT INTO dim_location (city_name, region_name, country)
 VALUES
 ('Tallinn', 'Harju', 'Estonia'),
@@ -49,26 +13,133 @@ VALUES
 ('Pärnu', 'Pärnu', 'Estonia'),
 ('Viljandi', 'Viljandi', 'Estonia');
 
--- 4. Payment types
+-- 2. Payment types
 INSERT INTO dim_payment_type (payment_method)
 VALUES ('Cash'), ('Card'), ('In-App'), ('Promo');
 
--- 5. Time dimension (12 months)
-INSERT INTO dim_time (full_date, day_of_week, month, year, is_weekend)
+-- 3. Time dimension (Fixed: 365 actual days for 2025)
+INSERT INTO dim_time (full_date, day_of_week, day_of_week_num, week_of_year, month, month_name, quarter, year, is_weekend, is_holiday)
 SELECT
-    DATE(CONCAT('2025-', LPAD(m,2,'0'), '-15')),
-    ELT(FLOOR(1 + RAND()*7), 'Mon','Tue','Wed','Thu','Fri','Sat','Sun'),
-    m,
-    2025,
-    IF(m IN (6,7,12), TRUE, FALSE)
+    full_date,
+    DAYNAME(full_date) AS day_of_week,
+    DAYOFWEEK(full_date) AS day_of_week_num,
+    WEEK(full_date, 3) AS week_of_year,
+    MONTH(full_date) AS month,
+    MONTHNAME(full_date) AS month_name,
+    QUARTER(full_date) AS quarter,
+    YEAR(full_date) AS year,
+    DAYOFWEEK(full_date) IN (1, 7) AS is_weekend,  -- 1=Sunday, 7=Saturday in MySQL
+    FALSE AS is_holiday  -- Can be updated later for specific holidays
 FROM (
-    SELECT 1 AS m UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-    UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-    UNION SELECT 11 UNION SELECT 12
-) months;
+    SELECT DATE_ADD('2024-12-31', INTERVAL seq DAY) AS full_date
+    FROM (
+        SELECT a.n + b.n * 10 + c.n * 100 AS seq
+        FROM
+            (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+             UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) a,
+            (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+             UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) b,
+            (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3) c
+    ) numbers
+    WHERE seq BETWEEN 1 AND 365
+) dates;
+
+-- Optional: Mark Estonian public holidays for 2025
+UPDATE dim_time SET is_holiday = TRUE WHERE full_date IN (
+    '2025-01-01',  -- New Year
+    '2025-02-24',  -- Independence Day
+    '2025-04-18',  -- Good Friday
+    '2025-04-20',  -- Easter Sunday
+    '2025-05-01',  -- Spring Day
+    '2025-06-08',  -- Pentecost
+    '2025-06-23',  -- Victory Day
+    '2025-06-24',  -- Midsummer Day
+    '2025-08-20',  -- Restoration of Independence
+    '2025-12-24',  -- Christmas Eve
+    '2025-12-25',  -- Christmas Day
+    '2025-12-26'   -- Boxing Day
+);
+
+-- 4. Drivers (Fixed: realistic Estonian names, proper city_id reference)
+INSERT INTO dim_driver (name, registration_date, city_id, rating, vehicle_type)
+VALUES
+('Jüri Tamm', DATE_SUB(CURDATE(), INTERVAL 1234 DAY), 1, 4.82, 'Sedan'),
+('Mati Kask', DATE_SUB(CURDATE(), INTERVAL 987 DAY), 1, 4.91, 'SUV'),
+('Peeter Kukk', DATE_SUB(CURDATE(), INTERVAL 756 DAY), 2, 4.65, 'Economy'),
+('Andres Raudsepp', DATE_SUB(CURDATE(), INTERVAL 1456 DAY), 1, 4.88, 'Sedan'),
+('Toomas Sepp', DATE_SUB(CURDATE(), INTERVAL 543 DAY), 3, 4.73, 'Economy'),
+('Kalev Mägi', DATE_SUB(CURDATE(), INTERVAL 823 DAY), 2, 4.95, 'SUV'),
+('Mart Laane', DATE_SUB(CURDATE(), INTERVAL 1102 DAY), 4, 4.58, 'Sedan'),
+('PriitOrg', DATE_SUB(CURDATE(), INTERVAL 645 DAY), 1, 4.79, 'Economy'),
+('Tarmo Paju', DATE_SUB(CURDATE(), INTERVAL 1345 DAY), 5, 4.67, 'SUV'),
+('Raivo Saar', DATE_SUB(CURDATE(), INTERVAL 892 DAY), 1, 4.84, 'Sedan'),
+('Olev Tamme', DATE_SUB(CURDATE(), INTERVAL 723 DAY), 2, 4.72, 'Economy'),
+('Jaak Kruus', DATE_SUB(CURDATE(), INTERVAL 1234 DAY), 3, 4.89, 'Sedan'),
+('Vello Lepp', DATE_SUB(CURDATE(), INTERVAL 456 DAY), 1, 4.63, 'SUV'),
+('Rein Käär', DATE_SUB(CURDATE(), INTERVAL 1567 DAY), 4, 4.76, 'Economy'),
+('Heino Nurk', DATE_SUB(CURDATE(), INTERVAL 934 DAY), 1, 4.93, 'Sedan'),
+('Tõnu Vares', DATE_SUB(CURDATE(), INTERVAL 678 DAY), 2, 4.68, 'SUV'),
+('Lembit Kuusk', DATE_SUB(CURDATE(), INTERVAL 1423 DAY), 5, 4.81, 'Economy'),
+('Alo Pärn', DATE_SUB(CURDATE(), INTERVAL 812 DAY), 1, 4.87, 'Sedan'),
+('Tiit Mets', DATE_SUB(CURDATE(), INTERVAL 1098 DAY), 3, 4.74, 'SUV'),
+('Valdur Kivi', DATE_SUB(CURDATE(), INTERVAL 567 DAY), 2, 4.66, 'Economy');
+
+-- 5. Riders (Fixed: realistic Estonian names)
+INSERT INTO dim_rider (name, registration_date, loyalty_status)
+VALUES
+('Kati Tamm', DATE_SUB(CURDATE(), INTERVAL 1534 DAY), 'Gold'),
+('Liis Kask', DATE_SUB(CURDATE(), INTERVAL 892 DAY), 'Silver'),
+('Mari Kukk', DATE_SUB(CURDATE(), INTERVAL 1245 DAY), 'Bronze'),
+('Anneli Mägi', DATE_SUB(CURDATE(), INTERVAL 678 DAY), 'Silver'),
+('Kristi Sepp', DATE_SUB(CURDATE(), INTERVAL 1876 DAY), 'Gold'),
+('Tiina Laane', DATE_SUB(CURDATE(), INTERVAL 423 DAY), 'Bronze'),
+('Piret Org', DATE_SUB(CURDATE(), INTERVAL 1092 DAY), 'Silver'),
+('Helen Paju', DATE_SUB(CURDATE(), INTERVAL 1567 DAY), 'Gold'),
+('Kersti Saar', DATE_SUB(CURDATE(), INTERVAL 734 DAY), 'Bronze'),
+('Monika Tamme', DATE_SUB(CURDATE(), INTERVAL 1234 DAY), 'Silver'),
+('Laura Kruus', DATE_SUB(CURDATE(), INTERVAL 456 DAY), 'Bronze'),
+('Kristiina Lepp', DATE_SUB(CURDATE(), INTERVAL 1678 DAY), 'Gold'),
+('Ave Käär', DATE_SUB(CURDATE(), INTERVAL 912 DAY), 'Silver'),
+('Marika Nurk', DATE_SUB(CURDATE(), INTERVAL 567 DAY), 'Bronze'),
+('Sirje Vares', DATE_SUB(CURDATE(), INTERVAL 1345 DAY), 'Gold'),
+('Ene Kuusk', DATE_SUB(CURDATE(), INTERVAL 823 DAY), 'Silver'),
+('Külli Pärn', DATE_SUB(CURDATE(), INTERVAL 1456 DAY), 'Bronze'),
+('Aino Mets', DATE_SUB(CURDATE(), INTERVAL 645 DAY), 'Silver'),
+('Tiiu Kivi', DATE_SUB(CURDATE(), INTERVAL 1789 DAY), 'Gold'),
+('Merike Tamm', DATE_SUB(CURDATE(), INTERVAL 534 DAY), 'Bronze'),
+('Kai Raudsepp', DATE_SUB(CURDATE(), INTERVAL 1123 DAY), 'Silver'),
+('Reet Männik', DATE_SUB(CURDATE(), INTERVAL 789 DAY), 'Bronze'),
+('Anu Saks', DATE_SUB(CURDATE(), INTERVAL 1432 DAY), 'Gold'),
+('Kadri Põld', DATE_SUB(CURDATE(), INTERVAL 623 DAY), 'Silver'),
+('Lea Hein', DATE_SUB(CURDATE(), INTERVAL 1567 DAY), 'Bronze'),
+('Rita Jõgi', DATE_SUB(CURDATE(), INTERVAL 845 DAY), 'Silver'),
+('Ester Torn', DATE_SUB(CURDATE(), INTERVAL 1234 DAY), 'Gold'),
+('Silva Rand', DATE_SUB(CURDATE(), INTERVAL 456 DAY), 'Bronze'),
+('Aili Väli', DATE_SUB(CURDATE(), INTERVAL 1678 DAY), 'Silver'),
+('Evi Allik', DATE_SUB(CURDATE(), INTERVAL 712 DAY), 'Bronze'),
+('Inga Vaher', DATE_SUB(CURDATE(), INTERVAL 1345 DAY), 'Gold'),
+('Õie Mänd', DATE_SUB(CURDATE(), INTERVAL 934 DAY), 'Silver'),
+('Helgi Koiv', DATE_SUB(CURDATE(), INTERVAL 567 DAY), 'Bronze'),
+('Aime Luik', DATE_SUB(CURDATE(), INTERVAL 1876 DAY), 'Gold'),
+('Valve Karu', DATE_SUB(CURDATE(), INTERVAL 623 DAY), 'Silver'),
+('Hilja Rebane', DATE_SUB(CURDATE(), INTERVAL 1432 DAY), 'Bronze'),
+('Virve Hunt', DATE_SUB(CURDATE(), INTERVAL 789 DAY), 'Silver'),
+('Meeli Jänes', DATE_SUB(CURDATE(), INTERVAL 1123 DAY), 'Gold'),
+('Maie Hirv', DATE_SUB(CURDATE(), INTERVAL 845 DAY), 'Bronze'),
+('Helle Ilves', DATE_SUB(CURDATE(), INTERVAL 1567 DAY), 'Silver'),
+('Linda Metsis', DATE_SUB(CURDATE(), INTERVAL 456 DAY), 'Bronze'),
+('Aasa Kotkas', DATE_SUB(CURDATE(), INTERVAL 1234 DAY), 'Gold'),
+('Ülle Kull', DATE_SUB(CURDATE(), INTERVAL 678 DAY), 'Silver'),
+('Viivi Haug', DATE_SUB(CURDATE(), INTERVAL 1789 DAY), 'Bronze'),
+('Elvi Tuvi', DATE_SUB(CURDATE(), INTERVAL 534 DAY), 'Silver'),
+('Helve Kägu', DATE_SUB(CURDATE(), INTERVAL 1456 DAY), 'Gold'),
+('Maive Kivi', DATE_SUB(CURDATE(), INTERVAL 912 DAY), 'Bronze'),
+('Taimi Kruusa', DATE_SUB(CURDATE(), INTERVAL 1092 DAY), 'Silver'),
+('Eha Pärtel', DATE_SUB(CURDATE(), INTERVAL 734 DAY), 'Bronze'),
+('Liia Kirsimäe', DATE_SUB(CURDATE(), INTERVAL 1678 DAY), 'Gold');
 
 -- =====================================================
--- FACT TABLE GENERATION (1000 rides with biases)
+-- FACT TABLE GENERATION (1000 rides with realistic patterns)
 -- =====================================================
 
 DELIMITER $$
@@ -77,31 +148,98 @@ CREATE PROCEDURE generate_fact_rides()
 BEGIN
     DECLARE i INT DEFAULT 0;
     DECLARE d_id INT;
+    DECLARE r_id INT;
     DECLARE base_rating DECIMAL(3,2);
     DECLARE base_price DECIMAL(10,2);
-    DECLARE wday INT;
+    DECLARE pickup_loc INT;
+    DECLARE dropoff_loc INT;
+    DECLARE ride_date DATE;
+    DECLARE ride_date_id INT;
     DECLARE start_dt DATETIME;
     DECLARE duration INT;
+    DECLARE distance_km DECIMAL(6,2);
+    DECLARE ride_status VARCHAR(20);
+    DECLARE payment_type INT;
 
     WHILE i < 1000 DO
-        SET d_id = FLOOR(1 + RAND()*20);  -- driver_id
-        SET wday = FLOOR(1 + RAND()*7);   -- for weekend bias
+        -- Select random driver and rider
+        SET d_id = FLOOR(1 + RAND() * 20);
+        SET r_id = FLOOR(1 + RAND() * 50);
 
-        -- Bias: more experienced drivers (higher id) → slightly higher price & rating
-        SET base_rating = ROUND(3.5 + (d_id/40) + RAND()*1.0, 2);
-        SET base_price  = ROUND(5 + (d_id/2) + RAND()*25, 2);
+        -- Generate random date in 2025 (days 1-330 from Jan 1)
+        SET ride_date = DATE_ADD('2025-01-01', INTERVAL FLOOR(RAND() * 330) DAY);
 
-        -- Weekend bias: 10% higher price & more rides on weekends
-        IF wday IN (6,7) THEN
-            SET base_price = base_price * 1.1;
+        -- Look up the corresponding date_id from dim_time
+        SELECT date_id INTO ride_date_id
+        FROM dim_time
+        WHERE full_date = ride_date;
+
+        -- Generate time of day (bias towards morning/evening rush hours)
+        -- 20% chance of morning rush (7-9am), 20% evening rush (5-7pm), 60% other times
+        SET start_dt = CASE
+            WHEN RAND() < 0.2 THEN
+                TIMESTAMP(ride_date, SEC_TO_TIME(FLOOR(7*3600 + RAND()*2*3600)))  -- 7-9 AM
+            WHEN RAND() < 0.5 THEN
+                TIMESTAMP(ride_date, SEC_TO_TIME(FLOOR(17*3600 + RAND()*2*3600))) -- 5-7 PM
+            ELSE
+                TIMESTAMP(ride_date, SEC_TO_TIME(FLOOR(RAND()*24*3600)))          -- Random
+        END;
+
+        -- Pickup and dropoff locations
+        SET pickup_loc = FLOOR(1 + RAND() * 5);
+        SET dropoff_loc = FLOOR(1 + RAND() * 5);
+
+        -- Distance based on same/different cities
+        SET distance_km = CASE
+            WHEN pickup_loc = dropoff_loc THEN ROUND(1 + RAND() * 8, 1)      -- Same city: 1-9 km
+            ELSE ROUND(10 + RAND() * 40, 1)                                    -- Different cities: 10-50 km
+        END;
+
+        -- Duration: roughly 2-3 min per km + random traffic (5-20 min)
+        SET duration = FLOOR(distance_km * (2 + RAND()) + 5 + RAND() * 15);
+
+        -- Base price: 2 EUR start + 0.80 EUR per km
+        SET base_price = ROUND(2 + distance_km * 0.80, 2);
+
+        -- Weekend/holiday surge pricing (20% increase)
+        IF (SELECT is_weekend OR is_holiday FROM dim_time WHERE date_id = ride_date_id) THEN
+            SET base_price = base_price * 1.2;
         END IF;
 
-        SET duration = FLOOR(10 + RAND()*50);
-        SET start_dt = TIMESTAMPADD(
-            MINUTE,
-            FLOOR(RAND()*1440),
-            TIMESTAMPADD(DAY, FLOOR(RAND()*330), '2025-01-01 00:00:00')
+        -- Rush hour surge (30% increase)
+        IF HOUR(start_dt) IN (7, 8, 17, 18) THEN
+            SET base_price = base_price * 1.3;
+        END IF;
+
+        -- Driver experience factor (slightly higher ratings for experienced drivers)
+        SET base_rating = ROUND(3.8 + RAND() * 1.2, 1);
+        IF base_rating > 5.0 THEN SET base_rating = 5.0; END IF;
+
+        -- Status distribution: 85% completed, 12% cancelled, 3% refunded
+        SET ride_status = ELT(
+            CASE
+                WHEN RAND() < 0.85 THEN 1
+                WHEN RAND() < 0.97 THEN 2
+                ELSE 3
+            END,
+            'Completed', 'Cancelled', 'Refunded'
         );
+
+        -- Payment type distribution: 10% cash, 40% card, 45% in-app, 5% promo
+        SET payment_type = CASE
+            WHEN RAND() < 0.10 THEN 1  -- Cash
+            WHEN RAND() < 0.50 THEN 2  -- Card
+            WHEN RAND() < 0.95 THEN 3  -- In-App
+            ELSE 4                      -- Promo
+        END;
+
+        -- Cancelled/refunded rides have no rating and possibly reduced price
+        IF ride_status != 'Completed' THEN
+            SET base_rating = NULL;
+            IF ride_status = 'Refunded' THEN
+                SET base_price = 0;
+            END IF;
+        END IF;
 
         INSERT INTO fact_rides (
             driver_id,
@@ -120,18 +258,18 @@ BEGIN
         )
         VALUES (
             d_id,
-            FLOOR(1 + RAND()*50),               -- rider
-            FLOOR(1 + RAND()*5),                -- pickup
-            FLOOR(1 + RAND()*5),                -- dropoff
-            FLOOR(1 + RAND()*12),               -- date_id (month)
+            r_id,
+            pickup_loc,
+            dropoff_loc,
+            ride_date_id,
             start_dt,
             TIMESTAMPADD(MINUTE, duration, start_dt),
             duration,
-            ROUND(3 + RAND()*15, 1),            -- distance
+            distance_km,
             base_price,
             base_rating,
-            FLOOR(1 + RAND()*4),                -- payment type
-            ELT(FLOOR(1 + RAND()*3), 'Completed','Cancelled','Refunded')
+            payment_type,
+            ride_status
         );
 
         SET i = i + 1;
