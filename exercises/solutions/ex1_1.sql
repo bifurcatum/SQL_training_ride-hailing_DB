@@ -2,9 +2,9 @@
 -- 22.10.25 ST
 
 SELECT
-    fact_rides.ride_id,
-    fact_rides.start_time,
-    fact_rides.price
+    ride_id,
+    start_time,
+    price
 FROM fact_rides
 WHERE status = 'Completed';
 
