@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_1.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_10.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_2.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_3.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_4.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_5.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_6.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_7.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_8.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/exercises/solutions/ex1_9.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_1.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_10.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_2.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_3.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_4.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_5.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_6.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_7.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_8.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/01_basic/ex1_9.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/02_intermediate/ex2_1.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/exercises/solutions/02_intermediate/ex2_2.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/schema/01_create_schema.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/schema/02_insert_data.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/schema/03_check_data.sql" dialect="MySQL" />
