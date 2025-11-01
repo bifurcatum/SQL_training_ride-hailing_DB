@@ -8,7 +8,7 @@ SELECT
 FROM dim_payment_type p
 JOIN fact_rides f
 ON p.payment_type_id = f.payment_type_id
-GROUP BY p.payment_method, f.status
-HAVING f.status = 'Completed';
+WHERE f.status = 'Completed'
+GROUP BY p.payment_method;
 
 
